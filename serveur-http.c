@@ -5,6 +5,8 @@
 #include <arpa/inet.h>
 #include <string.h>
 #include <unistd.h>
+#include <fcntl.h>
+#include <sys/stat.h>
 
 int main(int argc, char **argv)
 {
@@ -53,32 +55,53 @@ int main(int argc, char **argv)
 
   printf("New HTTP client connected: %s:%hu\n", inet_ntoa(client_addr.sin_addr), ntohs(client_addr.sin_port));
 
-  char buffer[4096];
-  int nb_recu = recv(new_sockfd, buffer, sizeof(buffer) - 1, 0);
-  if (nb_recu < 0)
+  // Open and send the HTML file
+  int fd = open("index.html", O_RDONLY);
+  if (fd < 0)
   {
-    perror("Failed to receive data");
+    perror("Open failed\n");
     close(new_sockfd);
     close(sock_fd);
     return 1;
   }
 
-  buffer[nb_recu] = '\0';
-  printf("Received HTTP request:\n%s\n", buffer);
+  struct stat st;
+  if (fstat(fd, &st) == -1)
+  {
+    perror("fstat");
+    close(fd);
+    close(new_sockfd);
+    close(sock_fd);
+    return 1;
+  }
 
-  char body[] = "<html><head><title>Not a test</title></head><body style=\"background-color: cyan;\"><h1>Hello, World!</h1></body></html>";
   char http_response[1024];
-
-  sprintf(http_response, "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length: %lu\r\n\r\n%s", strlen(body), body);
+  sprintf(http_response, "HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=utf-8\r\nContent-Length: %ld\r\n\r\n", (long)st.st_size);
   int sent = send(new_sockfd, http_response, strlen(http_response), 0);
   if (sent < 0)
   {
-    perror("Failed to send response");
+    perror("Failed to send response header");
+    close(fd);
     close(new_sockfd);
     close(sock_fd);
     return 1;
   }
 
+  // Send the file content byte by byte
+  char ch;
+  while (read(fd, &ch, 1) == 1)
+  {
+    if (send(new_sockfd, &ch, 1, 0) < 0)
+    {
+      perror("Failed to send file content");
+      close(fd);
+      close(new_sockfd);
+      close(sock_fd);
+      return 1;
+    }
+  }
+
+  close(fd);
   close(new_sockfd);
   close(sock_fd);
   return 0;

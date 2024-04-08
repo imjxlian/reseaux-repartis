@@ -1,0 +1,79 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Flight and Educational Institution API",
+    "version": "1.0.0",
+    "description": "API for accessing information about educational institutions and nearby flights."
+  },
+  "servers": [
+    {
+      "url": "http://localhost:3000",
+      "description": "Local server"
+    }
+  ],
+  "paths": {
+    "/getCoord/{sigle}": {
+      "get": {
+        "summary": "Get coordinates of an educational institution by its sigle.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "sigle",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The sigle of the educational institution."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response with coordinates.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "icao": {
+                      "type": "string"
+                    },
+                    "airline": {
+                      "type": "string"
+                    },
+                    "schoolAcronym": {
+                      "type": "string"
+                    },
+                    "updated": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No data found for the given sigle."
+          },
+          "500": {
+            "description": "Internal error."
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "ApiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-API-KEY"
+      }
+    }
+  },
+  "security": [
+    {
+      "ApiKeyAuth": []
+    }
+  ]
+}
